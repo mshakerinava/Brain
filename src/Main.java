@@ -1,54 +1,38 @@
-import java.util.Scanner;
+import edu.sharif.ce.mshakerinava.brain.NeuralNetwork;
+import edu.sharif.ce.mshakerinava.brain.neurons.Lin;
+import edu.sharif.ce.mshakerinava.brain.neurons.Loss;
+import edu.sharif.ce.mshakerinava.brain.neurons.Sig;
+
+import java.util.Random;
 
 public class Main {
-    private static final boolean AI_SELF_PLAY = false;
-    private static final int N_GAMES = 300000;
-
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        Brain brain = new Brain();
-        if (AI_SELF_PLAY) {
-            for (int i = 0; i < N_GAMES; i += 1) {
-                Board board = new Board();
-                while (true) {
-                    brain.act(board);
-                    String winner = board.winner();
-                    if (winner != null) {
-                        brain.reward(board);
-                        break;
-                    }
-                }
-                if (i % 100 == 0)
-                    System.out.println(i * 100.0 / N_GAMES + "%");
-            }
-//            brain.writeHistory();
-        } else {
-            Board board = new Board();
-            int player = Board.O;
-            System.out.println("Will you be X or O? [X/O]");
-            if (scanner.nextLine().equals("X")) player = Board.X;
-            while (true) {
-                if (board.getTurn() == player) {
-                    /* player's turn */
-                    System.out.println("Where do you want to play? [row column]");
-                    String[] move = scanner.nextLine().split(" ");
-                    int row = Integer.parseInt(move[0]) - 1;
-                    int col = Integer.parseInt(move[1]) - 1;
-                    board.play(row, col);
-                } else {
-                    /* AI's turn */
-                    brain.act(board);
-                }
-                board.print();
-                String winner = board.winner();
-                if (winner != null) {
-                    String blankTok = Board.TOKEN[Board.BLANK];
-                    if (winner.equals(blankTok)) System.out.println("Draw!");
-                    else System.out.println(winner + " Wins!");
-                    brain.reward(board);
-                    break;
-                }
-            }
+        /* construct neural network */
+        NeuralNetwork neuralNet = new NeuralNetwork();
+        neuralNet.addInput(2);
+        neuralNet.addLayer(3);
+        neuralNet.addNode(new Lin(2), 0);
+        neuralNet.addNode(new Sig(), 1);
+        neuralNet.addNode(new Loss(), 2);
+        neuralNet.connectInput(0, 0, 0, 0);
+        neuralNet.connectInput(1, 0, 0, 1);
+        neuralNet.connectNode(0, 0, 0, 1, 0, 0);
+        neuralNet.connectNode(1, 0, 0, 2, 0, 0);
+        /* train neural network to learn the 'OR' function */
+        Random gen = new Random();
+        for (int i = 0; i < 1000; i += 1) {
+            int x0 = gen.nextInt(2);
+            int x1 = gen.nextInt(2);
+            double[] x = {x0, x1};
+            double[] y = {x0 | x1};
+            neuralNet.update(x, y, 10.0);
         }
+        /* show results */
+        for (int x0 = 0; x0 < 2; x0 += 1)
+            for (int x1 = 0; x1 < 2; x1 += 1) {
+                double[] x = {x0, x1};
+                double y = neuralNet.evaluate(x)[0];
+                System.out.println(x0 + " | " + x1 + " ~= " + y);
+            }
     }
 }

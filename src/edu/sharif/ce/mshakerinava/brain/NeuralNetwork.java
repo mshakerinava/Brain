@@ -1,7 +1,5 @@
 package edu.sharif.ce.mshakerinava.brain;
 
-import edu.sharif.ce.mshakerinava.brain.Node;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
