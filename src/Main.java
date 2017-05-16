@@ -1,19 +1,19 @@
-import edu.sharif.ce.mshakerinava.brain.NeuralNetwork;
-import edu.sharif.ce.mshakerinava.brain.neurons.Lin;
-import edu.sharif.ce.mshakerinava.brain.neurons.Loss;
-import edu.sharif.ce.mshakerinava.brain.neurons.Sig;
+import edu.sharif.ce.mshakerinava.brain.base.Brain;
+import edu.sharif.ce.mshakerinava.brain.neurons.Linear;
+import edu.sharif.ce.mshakerinava.brain.neurons.SquareLoss;
+import edu.sharif.ce.mshakerinava.brain.neurons.Sigmoid;
 
 import java.util.Random;
 
 public class Main {
     public static void main(String[] args) {
         /* construct neural network */
-        NeuralNetwork neuralNet = new NeuralNetwork();
+        Brain neuralNet = new Brain();
         neuralNet.addInput(2);
         neuralNet.addLayer(3);
-        neuralNet.addNode(new Lin(2), 0);
-        neuralNet.addNode(new Sig(), 1);
-        neuralNet.addNode(new Loss(), 2);
+        neuralNet.addNode(new Linear(2), 0);
+        neuralNet.addNode(new Sigmoid(), 1);
+        neuralNet.addNode(new SquareLoss(), 2);
         neuralNet.connectInput(0, 0, 0, 0);
         neuralNet.connectInput(1, 0, 0, 1);
         neuralNet.connectNode(0, 0, 0, 1, 0, 0);
