@@ -1,14 +1,12 @@
 package edu.sharif.ce.mshakerinava.brain.base;
 
-import edu.sharif.ce.mshakerinava.brain.base.Neuron;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Brain {
     protected ArrayList<Synapse> input;
-    protected ArrayList<ArrayList<Node0>> neurons;
+    protected ArrayList<ArrayList<Node>> neurons;
 
     public Brain() {
         neurons = new ArrayList<>();
@@ -73,8 +71,8 @@ public class Brain {
      * Calls <code>Neuron.reset()</code> to reset the weights of all neurons in the network.
      */
     public void reset() {
-        for (ArrayList<Node0> layer : neurons) {
-            for (Node0 node0 : layer) node0.neuron.reset();
+        for (ArrayList<Node> layer : neurons) {
+            for (Node node : layer) node.neuron.reset();
         }
     }
 
@@ -123,7 +121,7 @@ public class Brain {
      * @param layer The index of the layer the neuron is being added to
      */
     public void addNode(Neuron neuron, int layer) {
-        neurons.get(layer).add(new Node0(neuron));
+        neurons.get(layer).add(new Node(neuron));
     }
 
     public void connectInput(int lhsIndex, int rhsLayer, int rhsIndex, int rhsInput) {
@@ -151,9 +149,9 @@ public class Brain {
     public void readWeights(String filename) {
         try {
             Scanner scanner = new Scanner(new FileReader(filename));
-            for (ArrayList<Node0> layer : neurons) {
-                for (Node0 node0 : layer) {
-                    Neuron neuron = node0.neuron;
+            for (ArrayList<Node> layer : neurons) {
+                for (Node node : layer) {
+                    Neuron neuron = node.neuron;
                     if (neuron.WEIGHT_LEN == 0) continue;
                     String[] ws = scanner.nextLine().split(" ");
                     double[] w = new double[neuron.WEIGHT_LEN];
@@ -172,9 +170,9 @@ public class Brain {
         FileWriter writer;
         try {
             writer = new FileWriter(file);
-            for (ArrayList<Node0> layer : neurons) {
-                for (Node0 node0 : layer) {
-                    Neuron neuron = node0.neuron;
+            for (ArrayList<Node> layer : neurons) {
+                for (Node node : layer) {
+                    Neuron neuron = node.neuron;
                     if (neuron.WEIGHT_LEN == 0) continue;
                     double[] weights = neuron.getWeights();
                     for (double weight : weights) writer.write(Double.toString(weight) + " ");
@@ -194,13 +192,13 @@ public class Brain {
             this.input.get(i).forward = input[i];
         /* put aside the loss layer */
         for (int layerIndex = 0; layerIndex < neurons.size() - 1; layerIndex += 1) {
-            ArrayList<Node0> layer = neurons.get(layerIndex);
+            ArrayList<Node> layer = neurons.get(layerIndex);
             Thread[] threads = new Thread[layer.size()];
             /* create forwardPass pass threads */
             for (int neuronIndex = 0; neuronIndex < layer.size(); neuronIndex += 1) {
-                Node0 node0 = layer.get(neuronIndex);
+                Node node = layer.get(neuronIndex);
                 threads[neuronIndex] = new Thread(() -> {
-                    node0.forwardPass();
+                    node.forwardPass();
                 });
                 threads[neuronIndex].start();
             }
@@ -214,9 +212,9 @@ public class Brain {
             }
         }
         /* the first half of the input to the loss function is the output */
-        Node0 lossNode0 = neurons.get(neurons.size() - 1).get(0);
-        double[] output = new double[lossNode0.neuron.INPUT_LEN / 2];
-        copyForwardSynapses(lossNode0.input, 0, output, 0, output.length);
+        Node lossNode = neurons.get(neurons.size() - 1).get(0);
+        double[] output = new double[lossNode.neuron.INPUT_LEN / 2];
+        copyForwardSynapses(lossNode.input, 0, output, 0, output.length);
         return output;
     }
 
@@ -233,24 +231,24 @@ public class Brain {
         /* do a forward pass without the loss neuron */
         evaluate(input);
         /* get loss neuron */
-        Node0 lossNode0 = neurons.get(neurons.size() - 1).get(0);
+        Node lossNode = neurons.get(neurons.size() - 1).get(0);
         /* put expected output on the loss neuron's input synapses */
-        assert lossNode0.input.length == output.length * 2;
-        copyForwardSynapses(output, 0, lossNode0.input, output.length, output.length);
+        assert lossNode.input.length == output.length * 2;
+        copyForwardSynapses(output, 0, lossNode.input, output.length, output.length);
         /* do a forward pass on the loss neuron */
-        lossNode0.forwardPass();
+        lossNode.forwardPass();
         /* put backward input (1.0) on synapse */
-        lossNode0.output[0].backward = 1.0;
+        lossNode.output[0].backward = 1.0;
         /* do a complete multithreaded backward pass on the whole network */
         for (int layerIndex = neurons.size() - 1; layerIndex >= 0; layerIndex -= 1) {
-            ArrayList<Node0> layer = neurons.get(layerIndex);
+            ArrayList<Node> layer = neurons.get(layerIndex);
             Thread[] threads = new Thread[layer.size()];
             /* create backward pass threads */
             for (int neuronIndex = 0; neuronIndex < layer.size(); neuronIndex += 1) {
-                Node0 node0 = layer.get(neuronIndex);
+                Node node = layer.get(neuronIndex);
                 threads[neuronIndex] = new Thread(() -> {
-                    double[] dl_dw = node0.backwardPass();
-                    node0.neuron.update(dl_dw, alpha);
+                    double[] dl_dw = node.backwardPass();
+                    node.neuron.update(dl_dw, alpha);
                 });
                 threads[neuronIndex].start();
             }
@@ -264,15 +262,15 @@ public class Brain {
             }
         }
         /* return loss */
-        return lossNode0.output[0].forward;
+        return lossNode.output[0].forward;
     }
 
-    protected static class Node0 {
+    protected static class Node {
         public Synapse[] input;
         public Synapse[] output;
         public Neuron neuron;
 
-        public Node0(Neuron neuron) {
+        public Node(Neuron neuron) {
             this.neuron = neuron;
             input = new Synapse[neuron.INPUT_LEN];
             for (int i = 0; i < input.length; i += 1)
