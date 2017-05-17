@@ -38,6 +38,15 @@ public class Brain {
     }
 
     /**
+     * Returns the number of inputs to the network.
+     *
+     * @return The number of inputs to the network
+     */
+    public int getNumberOfInputs() {
+        return input.size();
+    }
+
+    /**
      * Returns the number of layers in the network.
      *
      * @return The number of layers in the network
@@ -76,76 +85,55 @@ public class Brain {
         }
     }
 
-    /**
-     * Adds an input synapse to the network.
-     */
-    public void addInput() {
+    protected void addInput() {
         input.add(new Synapse());
     }
 
-    /**
-     * Adds n input synapses to the network.
-     *
-     * @param n The number of inputs to add to the network
-     */
-    public void addInput(int n) {
+    protected void addInput(int n) {
         for (int i = 0; i < n; i += 1)
             addInput();
     }
 
-    /**
-     * Adds an empty layer of neurons to the end of the network.
-     * The last layer must contain a single neuron that computes the loss function.
-     */
-    public void addLayer() {
+    protected void addLayer() {
         neurons.add(new ArrayList<>());
     }
 
-    /**
-     * Adds n empty layers of neurons to the end of the network.
-     * The last layer must contain a single neuron that computes the loss function.
-     *
-     * @param n The number of layers to add to the network
-     */
-    public void addLayer(int n) {
+    protected void addLayer(int n) {
         for (int i = 0; i < n; i += 1)
             this.addLayer();
     }
 
-    /**
-     * Adds a neuron to a layer of the network.
-     * The first half of the inputs to the loss function must be the network's output
-     * and the second half must be the expected output.
-     *
-     * @param neuron  The neuron to be added to the network
-     * @param layer The index of the layer the neuron is being added to
-     */
-    public void addNode(Neuron neuron, int layer) {
+    protected void addNeuron(Neuron neuron, int layer) {
         neurons.get(layer).add(new Node(neuron));
     }
 
-    public void connectInput(int lhsIndex, int rhsLayer, int rhsIndex, int rhsInput) {
+    protected void connectInput(int lhsIndex, int rhsLayer, int rhsIndex, int rhsInput) {
         neurons.get(rhsLayer).get(rhsIndex).input[rhsInput] = input.get(lhsIndex);
     }
 
-    public void connectInput(int lhsIndex, int rhsLayer, int rhsInput) {
+    protected void connectInput(int lhsIndex, int rhsLayer, int rhsInput) {
         int n = neurons.get(rhsLayer).size();
         for (int i = 0; i < n; i += 1)
             connectInput(lhsIndex, rhsLayer, i, rhsInput);
     }
 
-    public void connectNode(int lhsLayer, int lhsIndex, int lhsOutput, int rhsLayer, int rhsIndex, int rhsInput) {
+    protected void connectNeuron(int lhsLayer, int lhsIndex, int lhsOutput, int rhsLayer, int rhsIndex, int rhsInput) {
         Synapse synapse = new Synapse();
         neurons.get(lhsLayer).get(lhsIndex).output[lhsOutput] = synapse;
         neurons.get(rhsLayer).get(rhsIndex).input[rhsInput] = synapse;
     }
 
-    public void connectNode(int lhsLayer, int lhsIndex, int lhsOutput, int rhsLayer, int rhsInput) {
+    protected void connectNeuron(int lhsLayer, int lhsIndex, int lhsOutput, int rhsLayer, int rhsInput) {
         int n = neurons.get(rhsLayer).size();
         for (int i = 0; i < n; i += 1)
-            connectNode(lhsLayer, lhsIndex, lhsOutput, rhsLayer, i, rhsInput);
+            connectNeuron(lhsLayer, lhsIndex, lhsOutput, rhsLayer, i, rhsInput);
     }
 
+    /**
+     * Loads all network weights from specified file.
+     *
+     * @param filename The file to load from
+     */
     public void readWeights(String filename) {
         try {
             Scanner scanner = new Scanner(new FileReader(filename));
@@ -165,6 +153,11 @@ public class Brain {
         }
     }
 
+    /**
+     * Saves all network weights to specified file.
+     *
+     * @param filename The file to save to
+     */
     public void writeWeights(String filename) {
         File file = new File(filename);
         FileWriter writer;
@@ -186,29 +179,22 @@ public class Brain {
         }
     }
 
+    /**
+     * Applies the network's function to the given input.
+     *
+     * @param input The input to the network
+     * @return The output of the network
+     */
     public double[] evaluate(double[] input) {
         /* put input on synapses */
         for (int i = 0; i < input.length; i += 1)
             this.input.get(i).forward = input[i];
-        /* put aside the loss layer */
+        /* do a forward pass without the loss layer */
         for (int layerIndex = 0; layerIndex < neurons.size() - 1; layerIndex += 1) {
             ArrayList<Node> layer = neurons.get(layerIndex);
-            Thread[] threads = new Thread[layer.size()];
-            /* create forwardPass pass threads */
             for (int neuronIndex = 0; neuronIndex < layer.size(); neuronIndex += 1) {
                 Node node = layer.get(neuronIndex);
-                threads[neuronIndex] = new Thread(() -> {
-                    node.forwardPass();
-                });
-                threads[neuronIndex].start();
-            }
-            /* join all threads */
-            for (int neuronIndex = 0; neuronIndex < layer.size(); neuronIndex += 1) {
-                try {
-                    threads[neuronIndex].join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                node.forwardPass();
             }
         }
         /* the first half of the input to the loss function is the output */
@@ -239,26 +225,13 @@ public class Brain {
         lossNode.forwardPass();
         /* put backward input (1.0) on synapse */
         lossNode.output[0].backward = 1.0;
-        /* do a complete multithreaded backward pass on the whole network */
+        /* do a complete backward pass on the whole network */
         for (int layerIndex = neurons.size() - 1; layerIndex >= 0; layerIndex -= 1) {
             ArrayList<Node> layer = neurons.get(layerIndex);
-            Thread[] threads = new Thread[layer.size()];
-            /* create backward pass threads */
             for (int neuronIndex = 0; neuronIndex < layer.size(); neuronIndex += 1) {
                 Node node = layer.get(neuronIndex);
-                threads[neuronIndex] = new Thread(() -> {
-                    double[] dl_dw = node.backwardPass();
-                    node.neuron.update(dl_dw, alpha);
-                });
-                threads[neuronIndex].start();
-            }
-            /* join all threads */
-            for (int neuronIndex = 0; neuronIndex < layer.size(); neuronIndex += 1) {
-                try {
-                    threads[neuronIndex].join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                double[] dl_dw = node.backwardPass();
+                node.neuron.update(dl_dw, alpha);
             }
         }
         /* return loss */
