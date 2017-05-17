@@ -13,12 +13,13 @@ public class Main {
         neuralNet.fullyConnect();
         /* train neural network to learn the 'OR' function */
         Random gen = new Random();
-        for (int i = 0; i < 10000; i += 1) {
+        for (int i = 0; i < 7000; i += 1) {
             int x0 = gen.nextInt(2);
             int x1 = gen.nextInt(2);
             double[] x = {x0, x1};
             double[] y = {x0 | x1};
-            neuralNet.update(x, y, 1.0);
+            neuralNet.update(x, y, 7.0);
+            neuralNet.updateHistory();
         }
         /* show results */
         for (int x0 = 0; x0 < 2; x0 += 1)
@@ -27,5 +28,6 @@ public class Main {
                 double y = neuralNet.evaluate(x)[0];
                 System.out.println(x0 + " | " + x1 + " ~= " + y);
             }
+        neuralNet.writeHistory("history.txt");
     }
 }

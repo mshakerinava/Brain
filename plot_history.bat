@@ -1,0 +1,1 @@
+gnuplot -e "plot 'history.txt' with lines" --persist

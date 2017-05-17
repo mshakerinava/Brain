@@ -6,10 +6,12 @@ import java.util.Scanner;
 
 public class Brain {
     protected ArrayList<Synapse> input;
+    protected ArrayList<Double> history;
     protected ArrayList<ArrayList<Node>> neurons;
 
     public Brain() {
         neurons = new ArrayList<>();
+        history = new ArrayList<>();
         input = new ArrayList<>();
     }
 
@@ -80,9 +82,10 @@ public class Brain {
      * Calls <code>Neuron.reset()</code> to reset the weights of all neurons in the network.
      */
     public void reset() {
-        for (ArrayList<Node> layer : neurons) {
-            for (Node node : layer) node.neuron.reset();
-        }
+        for (ArrayList<Node> layer : neurons)
+            for (Node node : layer)
+                node.neuron.reset();
+        history.clear();
     }
 
     protected void addInput() {
@@ -177,6 +180,34 @@ public class Brain {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Saves history of weights to specified file.
+     *
+     * @param filename The file to save to
+     */
+    public void writeHistory(String filename) {
+        File file = new File(filename);
+        FileWriter writer;
+        try {
+            writer = new FileWriter(file);
+            for (double x : history)
+                writer.write("" + x + "\n");
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateHistory() {
+        double sum = 0;
+        for (ArrayList<Node> layer : neurons)
+            for (Node node : layer)
+                for (double w : node.neuron.getWeights())
+                    sum += w;
+        history.add(sum);
     }
 
     /**

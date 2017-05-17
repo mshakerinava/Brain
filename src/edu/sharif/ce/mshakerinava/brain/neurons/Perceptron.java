@@ -6,7 +6,7 @@ import edu.sharif.ce.mshakerinava.brain.base.Neuron;
  * A linear neuron plus an activation function.
  */
 public class Perceptron extends Neuron {
-    Neuron linear, activation;
+    protected Neuron linear, activation;
 
     /**
      * Creates a perceptron with n inputs and specified activation function.
@@ -15,13 +15,14 @@ public class Perceptron extends Neuron {
      * @param activation The activation function
      */
     public Perceptron(int n, Neuron activation) {
-        super(n, 1, 0);
+        super(n, 1, n + 1);
         /* assert that the neuron really is an activation function */
         assert activation.INPUT_LEN == 1;
         assert activation.OUTPUT_LEN == 1;
         assert activation.WEIGHT_LEN == 0;
         this.activation = activation;
         this.linear = new Linear(n);
+        linear.setWeights(this.w);
     }
 
     @Override
